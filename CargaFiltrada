@@ -1,0 +1,158 @@
+{
+  "nbformat": 4,
+  "nbformat_minor": 0,
+  "metadata": {
+    "colab": {
+      "provenance": [],
+      "mount_file_id": "1W7g27X2DabIQGbY6b7QevEPWoktokki5",
+      "authorship_tag": "ABX9TyPFm+RT/WvZHGAcypWhdjMe",
+      "include_colab_link": true
+    },
+    "kernelspec": {
+      "name": "python3",
+      "display_name": "Python 3"
+    },
+    "language_info": {
+      "name": "python"
+    }
+  },
+  "cells": [
+    {
+      "cell_type": "markdown",
+      "metadata": {
+        "id": "view-in-github",
+        "colab_type": "text"
+      },
+      "source": [
+        "<a href=\"https://colab.research.google.com/github/humanbotgit/CargaFiltrada/blob/main/CargaFiltrada\" target=\"_parent\"><img src=\"https://colab.research.google.com/assets/colab-badge.svg\" alt=\"Open In Colab\"/></a>"
+      ]
+    },
+    {
+      "cell_type": "code",
+      "source": [
+        "import pandas as pd\n",
+        "carga = pd.read_excel('Carga Lectiva 202420 - Descarga (1).xlsx', dtype=str)\n",
+        "asignaturas_recursos = pd.read_excel(\"Lista de Asignaturas x Recurso 2024-10 (3).xlsx\")\n",
+        "\n",
+        "cursos_recursos = pd.merge(carga,asignaturas_recursos,on='CURSO')\n",
+        "\n",
+        "cursos_recursos['IDEN_LIGA'] = cursos_recursos['IDEN_LIGA'].astype(str).str.strip()\n",
+        "\n",
+        "nrc_presencial = cursos_recursos[cursos_recursos['MODALIDAD'] == 'UC-PRESENCIAL']\n",
+        "nrc_presencial_un_horario = nrc_presencial[(nrc_presencial['IDEN_LIGA'] == '') | (nrc_presencial['IDEN_LIGA'] == ' ')]\n",
+        "nrc_presencial_horario_practica = nrc_presencial[~nrc_presencial['IDEN_LIGA'].isin(['', ' '])]\n",
+        "nrc_presencial_un_horario['TIPO']='UN HORARIO'\n",
+        "nrc_presencial_horario_practica['TIPO']='HORA PRÁCTICA'\n",
+        "\n",
+        "nrc_semipresencial = cursos_recursos[cursos_recursos['MODALIDAD'] == 'UC-SEMIPRESENCIAL']\n",
+        "nrc_semipresencial_un_horario = nrc_semipresencial[(nrc_semipresencial['IDEN_LIGA'] == '') | (nrc_semipresencial['IDEN_LIGA'] == ' ')]\n",
+        "nrc_semipresencial_horario_practica = nrc_semipresencial[~nrc_semipresencial['IDEN_LIGA'].isin(['', ' '])]\n",
+        "nrc_semipresencial_un_horario['TIPO']='UN HORARIO'\n",
+        "nrc_semipresencial_horario_practica['TIPO']='HORA PRÁCTICA'\n",
+        "\n",
+        "nrc_distancia = cursos_recursos[cursos_recursos['MODALIDAD'] == 'UC-A DISTANCIA']\n",
+        "nrc_distancia_un_horario = nrc_distancia[(nrc_distancia['IDEN_LIGA'] == '') | (nrc_distancia['IDEN_LIGA'] == ' ')]\n",
+        "nrc_distancia_horario_practica = nrc_distancia[~nrc_distancia['IDEN_LIGA'].isin(['', ' '])]\n",
+        "nrc_distancia_un_horario['TIPO']='UN HORARIO'\n",
+        "nrc_distancia_horario_practica['TIPO']='HORA TEÓRICA'\n",
+        "\n",
+        "horarios = [nrc_presencial_un_horario,nrc_presencial_horario_practica,nrc_semipresencial_un_horario,nrc_semipresencial_horario_practica,nrc_distancia_un_horario,nrc_distancia_horario_practica]\n",
+        "juntos = pd.concat(horarios)\n",
+        "juntos.to_excel('Carga Filtrada.xlsx',index=False)\n",
+        "cursos_recursos = pd.merge(carga,asignaturas_recursos,on='CURSO')\n",
+        "#()SIN :(-Sin asignar)\n",
+        "cursos_recursos_1 = cursos_recursos[cursos_recursos['HOR']=='()SIN :(-Sin asignar)']\n",
+        "#(AVIR)SIN :(-Sin asignar)\n",
+        "cursos_recursos_2 = cursos_recursos[cursos_recursos['HOR']=='(AVIR)SIN :(-Sin asignar)']\n",
+        "#TODOS LOS AVIR QUE NO SEAN (AVIR)SIN :(-Sin asignar)\n",
+        "cursos_recursos_avir = pd.concat([cursos_recursos,cursos_recursos_2,cursos_recursos_2]).drop_duplicates(keep=False)\n",
+        "#LOS QUE TIENEN CLAS\n",
+        "pattern = r'\\((?:[^-]+-([^()]+))\\)'\n",
+        "\n",
+        "# Extraer todas las coincidencias\n",
+        "matches = cursos_recursos['HOR'].str.extractall(pattern)\n",
+        "\n",
+        "# Pivotar los resultados para obtener cada coincidencia en una columna separada\n",
+        "matches = matches.reset_index().pivot(index='level_0', columns='match', values=0)\n",
+        "\n",
+        "# Renombrar las columnas\n",
+        "matches.columns = [f'aula{i+1}' for i in matches.columns]\n",
+        "\n",
+        "# Unir las columnas extraídas con el DataFrame original\n",
+        "cursos_recursos = cursos_recursos.join(matches)\n",
+        "\n",
+        "# Mostrar el DataFrame con las columnas extraídas\n",
+        "#Lista de software que nosotros vamos a revisar\n",
+        "software = [\n",
+        "    'ADOBE SUITE',\n",
+        "    'ARCGIS',\n",
+        "    'CADE SIMU',\n",
+        "    'CIROS',\n",
+        "    'DIRED-CAD',\n",
+        "    'DLT-CAD',\n",
+        "    'ERWIN DATA MODELER',\n",
+        "    'FLEXSIM',\n",
+        "    'FLUIDSIM - HIDRÁULICA',\n",
+        "    'FLUIDSIM - NEUMÁTICA',\n",
+        "    'MATLAB',\n",
+        "    'MESHMIXER',\n",
+        "    'PHYSIOEX',\n",
+        "    'POWER FACTORY ',\n",
+        "    'PROTEUS',\n",
+        "    'PYCHARM 2023.3.3',\n",
+        "    'PYTHON 3.12.1',\n",
+        "    'SISCONT',\n",
+        "    'SOLIDWORKS',\n",
+        "    'TIA PORTAL',\n",
+        "    'VENTSIM',\n",
+        "    'VMWARE WORKSTATION',\n",
+        "    'DOCTOC'\n",
+        "]\n",
+        "lista_software = cursos_recursos[cursos_recursos['RECURSO'].isin(software)]\n",
+        "lista_software = lista_software.drop_duplicates(subset=['CAMPUS','MODALIDAD','COD_ASIGNATURA','CURSO','aula1','aula2','aula3','aula4','aula5','aula6'])\n",
+        "lista_software = lista_software[['CAMPUS','NRC','MODALIDAD','CURSO','RECURSO','aula1','aula2','aula3','aula4','aula5','aula6']]\n",
+        "cursos_recursos.to_excel('cursos_recursos.xlsx',index=False)"
+      ],
+      "metadata": {
+        "id": "OwrxQ3UOt92N",
+        "colab": {
+          "base_uri": "https://localhost:8080/"
+        },
+        "outputId": "1f588735-7654-4b09-c7dc-d26386767b6a"
+      },
+      "execution_count": null,
+      "outputs": [
+        {
+          "output_type": "stream",
+          "name": "stderr",
+          "text": [
+            "<ipython-input-2-74e57a61b79f>:12: SettingWithCopyWarning: \n",
+            "A value is trying to be set on a copy of a slice from a DataFrame.\n",
+            "Try using .loc[row_indexer,col_indexer] = value instead\n",
+            "\n",
+            "See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy\n",
+            "  nrc_presencial_un_horario['TIPO']='UN HORARIO'\n",
+            "<ipython-input-2-74e57a61b79f>:13: SettingWithCopyWarning: \n",
+            "A value is trying to be set on a copy of a slice from a DataFrame.\n",
+            "Try using .loc[row_indexer,col_indexer] = value instead\n",
+            "\n",
+            "See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy\n",
+            "  nrc_presencial_horario_practica['TIPO']='HORA PRÁCTICA'\n",
+            "<ipython-input-2-74e57a61b79f>:18: SettingWithCopyWarning: \n",
+            "A value is trying to be set on a copy of a slice from a DataFrame.\n",
+            "Try using .loc[row_indexer,col_indexer] = value instead\n",
+            "\n",
+            "See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy\n",
+            "  nrc_semipresencial_un_horario['TIPO']='UN HORARIO'\n",
+            "<ipython-input-2-74e57a61b79f>:19: SettingWithCopyWarning: \n",
+            "A value is trying to be set on a copy of a slice from a DataFrame.\n",
+            "Try using .loc[row_indexer,col_indexer] = value instead\n",
+            "\n",
+            "See the caveats in the documentation: https://pandas.pydata.org/pandas-docs/stable/user_guide/indexing.html#returning-a-view-versus-a-copy\n",
+            "  nrc_semipresencial_horario_practica['TIPO']='HORA PRÁCTICA'\n"
+          ]
+        }
+      ]
+    }
+  ]
+}
